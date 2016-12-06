@@ -47,7 +47,7 @@ Some additional requirements:
 <hr/>
 
 <!-- Include your write up here and or below -->
-This function considered two situations when there is a date specified and when there is not. When the date is not specified, I retrieve the data frame using the url given by the forecast request method; when the date is specified, I first construct an empty data frame and then combine the data frame from each iteration when looping over the two days prior and two days following.
+This function considers two situations when there is a date specified and when there is not. When the date is not specified, I retrieve the data frame using the url given by the forecast request method; when the date is specified, I first construct an empty data frame and then combine the data frame from each iteration when looping over the two days prior and two days following.
 
 ```{r}
 key = "8b9117fb7b32a99b36f6829f2eef1edd"
@@ -92,12 +92,12 @@ Your final data frame should meet the following requirements
 <hr/>
 
 <!-- Include your write up here and or below -->
-In this task, I first retrieve the data frame frome wikipedia by webcraping. Then I cleaned up the data frame by doing the followings: $\\$
-1. convert character to numeric value$\\$
-2. filter out the cities with less than 500,000 residents duting the 2010 census$\\$
-3. delet the redundent encoding$\\$
-4. clean up the city names$\\$
-5. retrieve longitude and latitude fot each city$\\$
+In this task, I first retrieve the data frame frome wikipedia by webcraping. Then I clean up the data frame by doing the followings: 
+* convert character to numeric value
+* filter out the cities with less than 500,000 residents duting the 2010 census
+* delet the redundent encoding
+* clean up the city names
+* retrieve longitude and latitude fot each city
 
 ```{r}
 # Create your location data frame here
@@ -149,7 +149,7 @@ Your app should have the following features:
 <hr/>
 
 <!-- Include your write up here and or below -->
-In this shiny app, I designed three main features that users can play with. First, users can choose the city they want to see. Second, users can choose if they want to see the historical weather forecast. If they choose to see the historical weather forecast, a calendar will show up where users can choose a date they want to see. This option would give us a weather forecast plot for two days prior and two days following, otherwise, a weather forecast plot for next 48 hours will show up by default. Last, users can choose if they want to know predictions for other features like precip probability, humidity, wind speed, etc. If this option is turned on, there will be some options for users to choose from, and the plot will show both the temperature forecast and the forecast for the second feature that users specified. If this option is not turned on, the plot will only display the forecast for temperature by default.
+In this shiny app, I design three main features that users can play with. First, users can choose the city they want to see. Second, users can choose if they wanted to see the historical weather forecast. If they choosed to see the historical weather forecast, a calendar will show up where users can choose a date they want to see. This option would give us a weather forecast plot for two days prior and two days following, otherwise, a weather forecast plot for next 48 hours will show up by default. Last, users can choose if they wanted to know predictions for other features like precip probability, humidity, wind speed, etc. If this option was turned on, there will be some options for users to choose from, and the plot will show both the temperature forecast and the forecast for the second feature that users specified. If this option was not turned on, the plot will only display the forecast for temperature by default.
 
 
 ```{r echo=FALSE}

@@ -47,14 +47,30 @@ Some additional requirements:
 <hr/>
 
 <!-- Include your write up here and or below -->
+This function considered two situations when there is a date specified and when there is not. When the date is not specified, I retrieve the data frame using the url given by the forecast request method; when the date is specified, I first construct an empty data frame and then combine the data frame from each iteration when looping over the two days prior and two days following.
 
 ```{r}
+key = "8b9117fb7b32a99b36f6829f2eef1edd"
 get_darksky = function(key, lat, long, date = NULL)
 {
-
+  library("jsonlite")
+  library(lubridate)
+  library(dplyr)
+  if(is.null(date)){# get weather forecast dataframe when doing forecast request(no date specified)
+    site = paste0("https://api.darksky.net/forecast/",key,"/",lat,",",long) 
+    darksky = fromJSON(site)$hourly$data
+  }else{# get wearher forecast dataframe when doing time machine request(date specified)
+    date = date(date)
+    darksky = data.frame(time=integer())
+    for(i in c(-2,-1, 0, 1)){# loop over all the days we want and combine the dataframe together
+      site = paste0("https://api.darksky.net/forecast/",key,"/",lat,",",long,",",as.character(as.numeric(as.POSIXct(date+i))),"?exclude=currently,flags")
+      darksky = bind_rows(darksky, fromJSON(site)$hourly$data)
+    }
+  }
+  darksky$time = as.POSIXct(darksky$time, origin="1970-01-01")# change the date format to a readable format
+  darksky
 }
 ```
-
 
 <br/>
 
@@ -76,11 +92,37 @@ Your final data frame should meet the following requirements
 <hr/>
 
 <!-- Include your write up here and or below -->
+In this task, I first retrieve the data frame frome wikipedia by webcraping. Then I cleaned up the data frame by doing the followings: $\\$
+1. convert character to numeric value$\\$
+2. filter out the cities with less than 500,000 residents duting the 2010 census$\\$
+3. delet the redundent encoding$\\$
+4. clean up the city names$\\$
+5. retrieve longitude and latitude fot each city$\\$
 
 ```{r}
 # Create your location data frame here
-
-us_locs = data.frame()
+library(xml2)
+library(rvest)
+library(magrittr)
+library(stringr)
+library(dplyr)
+site = "https://en.wikipedia.org/wiki/List_of_United_States_cities_by_population"
+us_loc = read_html(site) %>% # get the data frame from wikipedia by webcraping
+  html_nodes(xpath='//*[@id="mw-content-text"]/table[4]') %>%
+  html_table()%>%
+  .[[1]]
+us_loc %<>% setNames(make.names(names(us_loc))) # make up names for the data frame so that we can use it in the data cleaning steps
+us_loc = us_loc %>% # Clean up the data frame
+  mutate(X2015.estimate = as.numeric(gsub(",", "", X2015.estimate)))%>% # convert character to numeric value
+  mutate(X2010.Census = as.numeric(gsub(",", "", X2010.Census)))%>%
+  filter(X2010.Census>500000)%>% # filter out the cities with less than 500,000 residents during the 2010 census
+  mutate(Change = str_replace(Change, ".+♠",""))%>% # delete the redundent encoding 
+  mutate(X2014.land.area = str_replace(X2014.land.area, ".+♠",""))%>%
+  mutate(X2010.population.density = str_replace(X2010.population.density, ".+♠",""))%>%
+  mutate(City = str_replace(City, "\\[[0-9]+\\]",""))%>% # clean up the city names
+  mutate(Latitude = str_match(Location,"([0-9]{2}.[0-9]{4});")[,2])%>% # retrieve longitude and latitude
+  mutate(Longitude = str_match(Location,"-[0-9]{2,3}.[0-9]{4}")[,1])%>%
+  select(-Location)
 ```
 
 
@@ -107,31 +149,93 @@ Your app should have the following features:
 <hr/>
 
 <!-- Include your write up here and or below -->
+In this shiny app, I designed three main features that users can play with. First, users can choose the city they want to see. Second, users can choose if they want to see the historical weather forecast. If they choose to see the historical weather forecast, a calendar will show up where users can choose a date they want to see. This option would give us a weather forecast plot for two days prior and two days following, otherwise, a weather forecast plot for next 48 hours will show up by default. Last, users can choose if they want to know predictions for other features like precip probability, humidity, wind speed, etc. If this option is turned on, there will be some options for users to choose from, and the plot will show both the temperature forecast and the forecast for the second feature that users specified. If this option is not turned on, the plot will only display the forecast for temperature by default.
+
 
 ```{r echo=FALSE}
 # Modify this default shiny app
-
+library(shiny)
 shinyApp(
   ui = fluidPage(
-     titlePanel("Old Faithful Geyser Data"),
+     titlePanel("Weather Forecast"),
      
      sidebarLayout(
         sidebarPanel(
-           sliderInput("bins", "Number of bins:",  min = 1, max = 50, value = 30)
-        ),
+           selectInput("city", "Choose a City",  choices=us_loc$City),
+           hr(),
+           checkboxInput("ifhist", "Display historical data", value = FALSE, width = NULL),
+           conditionalPanel(condition = "input.ifhist == true",
+                            dateInput("date", "Specify a historical date", value = Sys.Date(), 
+                                      min = NULL, max = Sys.Date()+7, format = "yyyy-mm-dd", startview = "month", 
+                                      weekstart = 0, language = "en", width = NULL)),
+           hr(),
+           checkboxInput("ifother", "Display other feastures", value = FALSE, width = NULL),
+           conditionalPanel(condition = "input.ifother == true",
+                            selectInput("other", "Other features you want to see", choices = NULL)),
+        width = 3),
         mainPanel(
-           plotOutput("distPlot")
+          htmlOutput("message"),
+          plotOutput("distPlot", height = "600px",width = "1000px")
+          
         )
      )
   ),
   server = function(input, output, session) 
   {   
-     output$distPlot= renderPlot(
-     {
-        x    = faithful[, 2] 
-        bins = seq(min(x), max(x), length.out = input$bins + 1)
-        hist(x, breaks = bins, col = 'darkgray', border = 'white')
-     })
+    loc = reactive({ # get the coordinates of the selected city
+      us_loc[us_loc$City == input$city,c("Longitude", "Latitude")]
+    }) 
+    
+    output$message = renderText({ # display the coordinates of the selected city
+      HTML(paste(paste0(input$city," Location:"),
+                 paste0("Longitude: ",loc()[1]," Latitude: ",loc()[2]), sep = "<br/>"))
+    }) 
+    
+    weather = reactive({ # get the weather forecast data frame using the function from task1
+      if(input$ifhist == FALSE)
+        get_darksky(key, loc()[2], loc()[1])
+      else
+        get_darksky(key, loc()[2], loc()[1], input$date)
+    })
+    
+    additional_features = reactive({ # get the features we can choose from
+      num_cols = weather()[,sapply(weather(), is.numeric)]%>%select(-temperature)
+      names(num_cols)
+    }) 
+    
+    observe({ # use the features as the options we can choose from
+      updateSelectInput(session, inputId = "other", 
+                        label = "Other features you want to see",
+                        choices = additional_features(),
+                        selected = NULL)
+    })
+    
+    output$distPlot = renderPlot({ # display the plot based on different conditions.
+      weather = weather()
+      time = weather$time
+      print(time)
+      other = input$other
+      substr(other, 1, 1) = tolower(substr(other, 1, 1))
+      par(mar = c(8,5,2,5))
+      plot(time, weather$temperature, type = "b", col = "black", pch = 20, lty = 1, cex = 1.5,
+           ylab = "Temperature", xaxt = "n", main = "Hourly Forecast")
+      if(input$ifhist == FALSE)
+        dis = seq(1,48,2)
+      else
+        dis = seq(1,96,4)
+      axis(1, time[dis], format(time[dis], "%Y-%m-%d %H:%M"), las = 2)
+      text(time[dis], weather$temperature[dis], labels = paste0(as.character(weather$temperature),"°F")[dis], cex= 0.8, pos=3, col = "cornflowerblue")
+      if(input$ifother == TRUE){
+        par(new = T)
+        plot(time, weather[,other], type = "b", col = "blue2", pch = 18, lty = 1, cex = 1.5, 
+             xlab = NA, ylab = NA, axes=F)
+        axis(side = 4)
+        mtext(side = 4, line = 3, input$other)
+        legend("topright",
+               legend=c(input$other, "Temperature"),
+               pch=c(18, 20), col=c("blue2", "black"), cex = 0.8)
+      }
+    })
   }
 )
 ```

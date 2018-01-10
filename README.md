@@ -2,10 +2,10 @@
 
 # Weather Forecast Shiny App
 
-This midterm is building a Shiny App for weather forecasting via a web API. Please see midterm2.Rmd for more description and details.
+The task is to build a Shiny App for weather forecasting via a web API. Please see midterm2.Rmd for more description and details.
 
 
-### Midterm Rules
+### Rules
 
 1. Your solutions must be written up using this R Markdown (Rmd) file, this file must include your code and write up for each task.
 

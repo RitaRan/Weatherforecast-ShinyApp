@@ -2,7 +2,7 @@
 
 # Weather Forecast Shiny App
 
-This midterm is building a Shiny App for weather forecasting via a web API. Please see midterm2.Rmd for more details
+This midterm is building a Shiny App for weather forecasting via a web API. Please see midterm2.Rmd for more description and details.
 
 
 ### Midterm Rules
